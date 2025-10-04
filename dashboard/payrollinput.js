@@ -81,9 +81,9 @@ function normalizeTimeInput(input) {
 }
 
 function handleSubmit(event) {
-    event.preventDefault(); // prevent default form submission
+    event.preventDefault();
 
-    // Collect form values
+    // Get inputs
     const name = document.getElementById('name').value.trim();
     const basicPay = parseFloat(document.getElementById('basicPay').value);
     const otPay = parseFloat(document.getElementById('otPay').value);
@@ -94,39 +94,44 @@ function handleSubmit(event) {
         return false;
     }
 
-    // Collect daily times
-    const dayInputs = document.querySelectorAll('#dayTableContainer input[type="number"]');
-    const dailyData = {};
+    // Get number of days in selected month
+    const [year, monthNum] = month.split('-').map(Number);
+    const numDays = new Date(year, monthNum, 0).getDate();
 
-    for (const input of dayInputs) {
-        dailyData[input.name] = Number(input.value);
-    }
-
-    const numDays = Object.keys(dailyData).length / 2; // Each day has start + end
     const workingHours = [];
 
     for (let day = 1; day <= numDays; day++) {
-        const start = dailyData[`start${day}`];
-        const end = [`end${day}`];
+        const startInput = document.querySelector(`input[name="start${day}"]`);
+        const endInput = document.querySelector(`input[name="end${day}"]`);
 
-        if (end <= start) {
-            alert(`Error on day ${day}: End time must be greater than Start time.`);
-            return false; // stop submission
+        if (!startInput || !endInput) {
+            workingHours.push(`day ${day}: missing data`);
+            continue;
+        }
+
+        const start = Number(startInput.value);
+        const end = Number(endInput.value);
+
+        // Validate: end must be greater than start, except for 0 (e.g., Sunday off)
+        if (start !== 0 || end !== 0) {
+            if (end <= start) {
+                alert(`Error on day ${day}: End time must be greater than Start time.`);
+                return false;
+            }
         }
 
         const hours = end - start;
-        workingHours.push(`day ${day}: ${hours}`)
+        workingHours.push(`day ${day}: ${hours}`);
     }
 
+    // Final formatted output
     const output = `Name: ${name}
-        Basic Pay: ${basicPay}
-        OT Pay: ${otPay}
-        Working Hours: ${workingHours.join('\n')}`;
+    Basic Pay: ${basicPay}
+    OT Pay: ${otPay}
+    Working Hours:
+    ${workingHours.join('\n')}`;
 
-    // Example: Log data to console (replace with real submission code)
     console.log(output);
-
-    alert('Form submitted successfully! (Check console for data)');
-
-    return true; // page reload
+    alert("Form submitted successfully! Check the console for output.");
+    return true;
 }
