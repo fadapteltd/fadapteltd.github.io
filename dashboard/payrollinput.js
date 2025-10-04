@@ -46,18 +46,50 @@ function generateTable() {
 
     table.appendChild(tbody);
     container.appendChild(table);
+    attachNormalizationListeners();
+}
+
+// Attach event listeners to inputs after table generated
+function attachNormalizationListeners() {
+    const inputs = document.querySelectorAll('#dayTableContainer input[type="number"]');
+    inputs.forEach(input => {
+        input.addEventListener('blur', () => normalizeTimeInput(input));
+    });
+}
+
+function normalizeTimeInput(input) {
+    let val = input.value;
+
+    // Remove leading zeros
+    val = val.replace(/^0+(?=\d)/, '');
+
+    // Convert to number
+    let num = Number(val);
+
+    if (isNaN(num)) {
+        num = input.min || 0;  // fallback to min or 0
+    }
+
+    // Enforce min/max bounds
+    const min = input.min ? Number(input.min) : 0;
+    const max = input.max ? Number(input.max) : 23;
+
+    if (num < min) num = min;
+    if (num > max) num = max;
+
+    input.value = num;
 }
 
 function handleSubmit(event) {
     event.preventDefault(); // prevent default form submission
 
     // Collect form values
-    const month = document.getElementById('month').value;
     const name = document.getElementById('name').value.trim();
     const basicPay = parseFloat(document.getElementById('basicPay').value);
     const otPay = parseFloat(document.getElementById('otPay').value);
+    const month = document.getElementById('month').value;
 
-    if (!month || !name || isNaN(basicPay) || isNaN(otPay)) {
+    if (!name || isNaN(basicPay) || isNaN(otPay) || !month) {
         alert('Please fill out all fields correctly.');
         return false;
     }
@@ -67,22 +99,34 @@ function handleSubmit(event) {
     const dailyData = {};
 
     for (const input of dayInputs) {
-        dailyData[input.name] = input.value;
+        dailyData[input.name] = Number(input.value);
     }
 
+    const numDays = Object.keys(dailyData).length / 2; // Each day has start + end
+    const workingHours = [];
+
+    for (let day = 1; day <= numDays; day++) {
+        const start = dailyData[`start${day}`];
+        const end = [`end${day}`];
+
+        if (end <= start) {
+            alert(`Error on day ${day}: End time must be greater than Start time.`);
+            return false; // stop submission
+        }
+
+        const hours = end - start;
+        workingHours.push(`day ${day}: ${hours}`)
+    }
+
+    const output = `Name: ${name}
+        Basic Pay: ${basicPay}
+        OT Pay: ${otPay}
+        Working Hours: ${workingHours.join('\n')}`;
+
     // Example: Log data to console (replace with real submission code)
-    console.log({
-        month,
-        name,
-        basicPay,
-        otPay,
-        dailyData
-    });
+    console.log(output);
 
     alert('Form submitted successfully! (Check console for data)');
 
-    // Optionally reset form or redirect
-    event.target.reset();
-
-    return false; // prevent page reload
+    return true; // page reload
 }
