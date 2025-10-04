@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      background-color: #f2f2f2;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 20px;
+    }
+
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 30px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #007BFF;
+      color: white;
+    }
+
+    td input[type="number"] {
+      width: 100%;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Payroll Input Dashboard</h1>
+
+  <!-- Month Selector -->
+  <label for="month">Select Month and Year:</label>
+  <input type="month" id="month" name="month" required onchange="generateTable()">
+
+  <!-- Name -->
+  <label for="name">Employee Name:</label>
+  <input type="text" id="name" name="name" required>
+
+  <!-- Basic Pay -->
+  <label for="basicPay">Basic Pay:</label>
+  <input type="number" id="basicPay" name="basicPay" min="0" step="0.01" required>
+
+  <!-- OT Pay -->
+  <label for="otPay">OT Pay:</label>
+  <input type="number" id="otPay" name="otPay" min="0" step="0.01" required>
+
+  <!-- Table for daily values -->
+  <div id="dayTableContainer"></div>
+
+  <script>
+    function generateTable() {
+      const container = document.getElementById("dayTableContainer");
+      container.innerHTML = ""; // Clear previous table
+
+      const monthInput = document.getElementById("month").value;
+      if (!monthInput) return;
+
+      const [year, month] = monthInput.split("-").map(Number);
+
+      const numDays = new Date(year, month, 0).getDate(); // Get number of days in month
+      const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+
+      // Create table
+      const table = document.createElement("table");
+
+      // Table Header
+      const thead = document.createElement("thead");
+      thead.innerHTML = `<tr><th>Date</th><th>Input Value</th></tr>`;
+      table.appendChild(thead);
+
+      // Table Body
+      const tbody = document.createElement("tbody");
+
+      for (let day = 1; day <= numDays; day++) {
+        const dateStr = `${monthName} ${day}, ${year}`;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${dateStr}</td>
+          <td><input type="number" name="day${day}" min="0" step="0.01"></td>
+        `;
+        tbody.appendChild(row);
+      }
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+    }
+  </script>
+
+</body>
+</html>
