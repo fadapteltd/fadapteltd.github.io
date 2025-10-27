@@ -1,3 +1,5 @@
+document.addEventListener("DOMContentLoaded", loadEmployees);
+
 function generateTable() {
 	const container = document.getElementById("dayTableContainer");
 	container.innerHTML = ""; // Clear previous table
@@ -51,6 +53,42 @@ function generateTable() {
 	attachNormalizationListeners();
 }
 
+function loadEmployees(){
+	fetch("get_employees.php")
+	.then((res) => res.json())
+	.then((data) => {
+		if (data.success) {
+			const select = document.getElementById("employee");
+			data.employees.forEach((emp) => {
+				const option = document.createElement("option");
+				option.value = emp.id;
+				option.textContent = emp.name;
+				select.appendChild(option);
+			});
+		}
+	})
+	.catch((err) => console.error("Error loading employees:", err));
+}
+
+function loadEmployeeDetails() {
+	const id = document.getElementById("employee").value;
+	if (!id) {
+		document.getElementById("basicPay").value = "";
+		document.getElementById("otPay").value = "";
+		return;
+	}
+
+	fetch(`get_employee_details.php?id=${id}`)
+		.then((res) => res.json())
+		.then((data) => {
+			if (data.success) {
+				document.getElementById("basicPay").value = data.employee.basic_pay;
+				document.getElementById("otPay").value = data.employee.ot_pay;
+			}
+		})
+		.catch((err) => console.error("Error loading details:", err));
+}
+
 // Attach event listeners to inputs after table generated
 function attachNormalizationListeners() {
 	const inputs = document.querySelectorAll(
@@ -88,7 +126,9 @@ function handleSubmit(event) {
 	event.preventDefault();
 
 	// Get inputs
-	const name = document.getElementById("name").value.trim();
+	const employee = document.getElementById("employee");
+	const name = employee.options[employee.selectedIndex].text;
+	
 	const basicPay = parseFloat(document.getElementById("basicPay").value);
 	const otPay = parseFloat(document.getElementById("otPay").value);
 	const month = document.getElementById("month").value;
