@@ -3,11 +3,11 @@ header("Content-Type: application/json");
 header("Access-Control-Allow-Origin: *");
 
 $servername = "localhost";
-$username = "root";
-$password = "admin";
+$dbusername = "root";
+$dbpassword = "admin";
 $dbname = "sys";
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+$conn = new mysqli($servername, $dbusername, $dbpassword, $dbname);
 
 if ($conn->connect_error) {
     die(json_encode(["success" => false, "message" => "DB connection failed"]));
