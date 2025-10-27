@@ -71,10 +71,8 @@
 			/>
 
 			<!-- Name -->
-			<label for="employee">Select Employee:</label>
-			<select id="employee" name="employee" required onchange="loadEmployeeDetails()">
-				<option value="">--Select Employee</option>
-			</select>
+			<label for="name">Employee Name:</label>
+			<input type="text" id="name" name="name" required />
 
 			<!-- Basic Pay -->
 			<label for="basicPay">Basic Pay:</label>
@@ -82,7 +80,9 @@
 				type="number"
 				id="basicPay"
 				name="basicPay"
-				readonly
+				min="0"
+				step="0.01"
+				required
 			/>
 
 			<!-- OT Pay -->
@@ -91,7 +91,9 @@
 				type="number"
 				id="otPay"
 				name="otPay"
-				readonly
+				min="0"
+				step="0.01"
+				required
 			/>
 
 			<!-- Table for daily values -->

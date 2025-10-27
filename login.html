@@ -54,7 +54,7 @@
 	<body>
 		<div class="login-container">
 			<h2>Login</h2>
-			<form id="loginForm">
+			<form onsubmit="return checkLogin(event)">
 				<input
 					type="text"
 					id="username"
@@ -72,31 +72,23 @@
 		</div>
 
 		<script>
-			document.getElementById("loginForm").addEventListener("submit", async function (event) {
-				event.preventDefault();
+			function checkLogin(event) {
+				event.preventDefault(); // Stop form from submitting
 
 				const username = document.getElementById("username").value;
 				const password = document.getElementById("password").value;
 
-				try {
-				const response = await fetch("login.php", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ username, password })
-				});
-
-				const result = await response.json();
-
-				if (result.success) {
-					window.location.href = "./dashboard/dashboard.html";
+				if (username === "admin" && password === "admin") {
+					// Success: redirect to dashboard
+					window.location.href = "/dashboard/dashboard.html";
 				} else {
-					alert(result?.message || "Login failed: Invalid username or password.");
+					// Fail: alert and redirect to index
+					alert("Login failed: Invalid username or password.");
+					window.location.href = "index.html";
 				}
-				} catch (error) {
-					console.error("Error:", error);
-					alert("An error occurred while connecting to the server.");
-				}
-			});
+
+				return false;
+			}
 		</script>
 	</body>
 </html>
