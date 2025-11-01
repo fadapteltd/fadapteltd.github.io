@@ -1,4 +1,4 @@
-function generateTable() {
+async function generateTable() {
 	const container = document.getElementById("dayTableContainer");
 	container.innerHTML = ""; // Clear previous table
 
@@ -28,14 +28,41 @@ function generateTable() {
 	// Table Body
 	const tbody = document.createElement("tbody");
 
+	const apiUrl = `https://api.11holidays.com/holidays/sg/${year}`;
+	let holidayDates = [];
+
+	try {
+		const response = await fetch(apiUrl);
+		if (!response.ok) throw new Error("Failed to fetch public holidays");
+
+		const holidays = await response.json();
+
+		// holidays array contains objects with `date` property like "2025-01-01"
+		holidayDates = holidays.map((h) => h.date);
+	} catch (err) {
+		console.error("Error fetching holidays:", err);
+		// fallback: no holidays if API fails
+		holidayDates = [];
+	}
+
+	const holidaySet = new Set(holidayDates);
+
 	for (let day = 1; day <= numDays; day++) {
 		const currentDate = new Date(year, month - 1, day);
 		const isSunday = currentDate.getDay() === 0;
+
+		const yyyy = currentDate.getFullYear();
+		const mm = String(currentDate.getMonth() + 1).padStart(2, "0");
+		const dd = String(currentDate.getDate()).padStart(2, "0");
+		const dateKey = `${yyyy}-${mm}-${dd}`;
+		const isPublicHoliday = holidaySet.has(dateKey);
+		const isRestDay = isSunday || isPublicHoliday;
+
 		const dateStr = `${monthName} ${day}, ${year}`;
 
-		const startValue = isSunday ? 0 : 8;
-		const endValue = isSunday ? 0 : 19;
-		const textColor = isSunday ? 'style="color:red;"' : "";
+		const startValue = isRestDay ? 0 : 8;
+		const endValue = isRestDay ? 0 : 19;
+		const textColor = isRestDay ? 'style="color:red;"' : "";
 
 		const row = document.createElement("tr");
 		row.innerHTML = `
