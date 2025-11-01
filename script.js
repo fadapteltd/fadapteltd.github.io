@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		phoneButton.addEventListener("click", function () {
 			var phoneNumber = "123-456-7890";
 			copyToClipboard(phoneNumber);
-			alert("电话号码已复制到剪贴板");
+			alert("Copied to clipboard.");
 		});
 	} else {
 		document.querySelector(".btn-copy").style.display = "inline-block";
@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", function () {
 		copyButton.addEventListener("click", function () {
 			var phoneNumber = "123-456-7890";
 			copyToClipboard(phoneNumber);
-			alert("电话号码已复制到剪贴板");
+			alert("Copied to clipboard");
 		});
 	}
 });
