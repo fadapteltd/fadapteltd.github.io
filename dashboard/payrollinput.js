@@ -28,14 +28,14 @@ async function generateTable() {
 	// Table Body
 	const tbody = document.createElement("tbody");
 
-	const apiUrl = `https://api.11holidays.com/holidays/sg/${year}`;
+	const apiUrl = `https://cors-anywhere.herokuapp.com/https://api.11holidays.com/holidays/sg/${year}`; //https://cors-anywhere.herokuapp.com/ for testing
+
 	let holidayDates = [];
 
 	try {
-		const response = await fetch(apiUrl);
-		if (!response.ok) throw new Error("Failed to fetch public holidays");
+		const response = await fetch(apiUrl).then((url) => url.text());
 
-		const holidays = await response.json();
+		const holidays = await parseNationalHolidaysFromHTML(response);
 
 		// holidays array contains objects with `date` property like "2025-01-01"
 		holidayDates = holidays.map((h) => h.date);
@@ -46,6 +46,7 @@ async function generateTable() {
 	}
 
 	const holidaySet = new Set(holidayDates);
+	window.holidaySet = holidaySet;
 
 	for (let day = 1; day <= numDays; day++) {
 		const currentDate = new Date(year, month - 1, day);
@@ -76,6 +77,37 @@ async function generateTable() {
 	table.appendChild(tbody);
 	container.appendChild(table);
 	attachNormalizationListeners();
+}
+
+async function parseNationalHolidaysFromHTML(htmlText) {
+	// Parse the full HTML page
+	const parser = new DOMParser();
+	const doc = parser.parseFromString(htmlText, "text/html");
+
+	// Find the holiday table
+	const table = doc.querySelector("#holidays");
+	if (!table) {
+		console.error("No table with id='holidays' found!");
+		return [];
+	}
+
+	// Extract rows
+	const rows = table.querySelectorAll("tbody tr");
+
+	// Convert to JSON + filter only National Holidays
+	const holidays = Array.from(rows)
+		.map((tr) => {
+			const tds = tr.querySelectorAll("td");
+			return {
+				date: tds[0]?.getAttribute("data-date")?.trim() || "",
+				day: tds[1]?.textContent.trim() || "",
+				name: tds[2]?.textContent.trim() || "",
+				type: tds[3]?.textContent.trim() || "",
+			};
+		})
+		.filter((item) => item.type.toLowerCase().includes("national holiday"));
+
+	return holidays;
 }
 
 // Attach event listeners to inputs after table generated
