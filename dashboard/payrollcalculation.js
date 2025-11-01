@@ -7,7 +7,7 @@ function calculatePayrollStats(month, dailyData, basicPay, otPay, name) {
 	const [year, monthIndex] = month.split("-").map(Number);
 	const results = {
 		workingDays: 0,
-		sundaysWorked: 0,
+		restDaysWorked: 0,
 		otHours: 0,
 		totalDaysWorked: 0,
 		daysUntil10pm: 0,
@@ -25,7 +25,18 @@ function calculatePayrollStats(month, dailyData, basicPay, otPay, name) {
 		if (hoursWorked <= 0) continue;
 
 		const date = new Date(year, monthIndex - 1, day);
-		const isSunday = date.getDay() === 0;
+		const dayOfWeek = date.getDay(); // 0 = Sunday
+		const yyyy = date.getFullYear();
+		const mm = String(date.getMonth() + 1).padStart(2, "0");
+		const dd = String(date.getDate()).padStart(2, "0");
+		const dateKey = `${yyyy}-${mm}-${dd}`;
+
+		// Detect if rest day (Sunday or Public Holiday)
+		let isPublicHoliday = false;
+		if (window.holidaySet) {
+			isPublicHoliday = window.holidaySet.has(dateKey);
+		}
+		const isRestDay = dayOfWeek === 0 || isPublicHoliday;
 
 		// 1. Total days worked (any hours > 0)
 		results.totalDaysWorked++;
@@ -36,13 +47,13 @@ function calculatePayrollStats(month, dailyData, basicPay, otPay, name) {
 		}
 
 		// 3. Sundays worked
-		if (isSunday) {
+		if (isRestDay) {
 			if (hoursWorked <= 4) {
-				results.sundaysWorked += 0.5;
+				results.restDaysWorked += 0.5;
 			} else {
-				results.sundaysWorked += 1;
+				results.restDaysWorked += 1;
 			}
-			continue; // Do not count Sundays in normal working or OT
+			continue; // Do not count Sundays and Public Holiday in normal working or OT
 		}
 
 		// 4. Regular working days (Mon–Sat)
@@ -68,13 +79,13 @@ function calculateTotalPay(results, basicPay, otPay, name) {
 	const daysLate = results.daysUntil10pm;
 
 	const workingPay = results.workingDays * basicPay;
-	const sundayPay = results.sundaysWorked * basicPay * 1.5;
+	const restDayPay = results.restDaysWorked * basicPay * 1.5;
 	const otPayTotal = results.otHours * otPay;
 	const transportPay = results.totalDaysWorked * 5;
 	const foodCost = daysLate > 0 ? daysLate * 5 : 0;
 
 	const totalPay =
-		workingPay + sundayPay + otPayTotal + transportPay + foodCost;
+		workingPay + restDayPay + otPayTotal + transportPay + foodCost;
 
 	// Format numbers to 2 decimals
 	function formatMoney(val) {
@@ -97,9 +108,9 @@ function calculateTotalPay(results, basicPay, otPay, name) {
         <tr><td>${results.workingDays} days x ${formatMoney(
 		basicPay
 	)}</td><td>= ${formatMoney(workingPay)}</td></tr>
-        <tr><td>${results.sundaysWorked} days x ${formatMoney(
+        <tr><td>${results.restDaysWorked} days x ${formatMoney(
 		basicPay
-	)} x 1.5</td><td>= ${formatMoney(sundayPay)}</td></tr>
+	)} x 1.5</td><td>= ${formatMoney(restDayPay)}</td></tr>
         <tr><td>OT: ${results.otHours} hours x ${formatMoney(
 		otPay
 	)}</td><td>= ${formatMoney(otPayTotal)}</td></tr>

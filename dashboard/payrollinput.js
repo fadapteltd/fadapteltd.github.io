@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", loadEmployees);
 
-function generateTable() {
+async function generateTable() {
 	const container = document.getElementById("dayTableContainer");
 	container.innerHTML = ""; // Clear previous table
 
@@ -30,6 +30,26 @@ function generateTable() {
 	// Table Body
 	const tbody = document.createElement("tbody");
 
+	const apiUrl = `https://cors-anywhere.herokuapp.com/https://api.11holidays.com/holidays/sg/${year}`; //https://cors-anywhere.herokuapp.com/ for testing
+
+	let holidayDates = [];
+
+	try {
+		const response = await fetch(apiUrl).then((url) => url.text());
+
+		const holidays = await parseNationalHolidaysFromHTML(response);
+
+		// holidays array contains objects with `date` property like "2025-01-01"
+		holidayDates = holidays.map((h) => h.date);
+	} catch (err) {
+		console.error("Error fetching holidays:", err);
+		// fallback: no holidays if API fails
+		holidayDates = [];
+	}
+
+	const holidaySet = new Set(holidayDates);
+	window.holidaySet = holidaySet;
+
 	for (let day = 1; day <= numDays; day++) {
 		const currentDate = new Date(year, month - 1, day);
 		const isSunday = currentDate.getDay() === 0;
@@ -53,21 +73,21 @@ function generateTable() {
 	attachNormalizationListeners();
 }
 
-function loadEmployees(){
+function loadEmployees() {
 	fetch("get_employees.php")
-	.then((res) => res.json())
-	.then((data) => {
-		if (data.success) {
-			const select = document.getElementById("employee");
-			data.employees.forEach((emp) => {
-				const option = document.createElement("option");
-				option.value = emp.id;
-				option.textContent = emp.name;
-				select.appendChild(option);
-			});
-		}
-	})
-	.catch((err) => console.error("Error loading employees:", err));
+		.then((res) => res.json())
+		.then((data) => {
+			if (data.success) {
+				const select = document.getElementById("employee");
+				data.employees.forEach((emp) => {
+					const option = document.createElement("option");
+					option.value = emp.id;
+					option.textContent = emp.name;
+					select.appendChild(option);
+				});
+			}
+		})
+		.catch((err) => console.error("Error loading employees:", err));
 }
 
 function loadEmployeeDetails() {
@@ -82,11 +102,43 @@ function loadEmployeeDetails() {
 		.then((res) => res.json())
 		.then((data) => {
 			if (data.success) {
-				document.getElementById("basicPay").value = data.employee.basic_pay;
+				document.getElementById("basicPay").value =
+					data.employee.basic_pay;
 				document.getElementById("otPay").value = data.employee.ot_pay;
 			}
 		})
 		.catch((err) => console.error("Error loading details:", err));
+}
+
+async function parseNationalHolidaysFromHTML(htmlText) {
+	// Parse the full HTML page
+	const parser = new DOMParser();
+	const doc = parser.parseFromString(htmlText, "text/html");
+
+	// Find the holiday table
+	const table = doc.querySelector("#holidays");
+	if (!table) {
+		console.error("No table with id='holidays' found!");
+		return [];
+	}
+
+	// Extract rows
+	const rows = table.querySelectorAll("tbody tr");
+
+	// Convert to JSON + filter only National Holidays
+	const holidays = Array.from(rows)
+		.map((tr) => {
+			const tds = tr.querySelectorAll("td");
+			return {
+				date: tds[0]?.getAttribute("data-date")?.trim() || "",
+				day: tds[1]?.textContent.trim() || "",
+				name: tds[2]?.textContent.trim() || "",
+				type: tds[3]?.textContent.trim() || "",
+			};
+		})
+		.filter((item) => item.type.toLowerCase().includes("national holiday"));
+
+	return holidays;
 }
 
 // Attach event listeners to inputs after table generated
@@ -128,7 +180,7 @@ function handleSubmit(event) {
 	// Get inputs
 	const employee = document.getElementById("employee");
 	const name = employee.options[employee.selectedIndex].text;
-	
+
 	const basicPay = parseFloat(document.getElementById("basicPay").value);
 	const otPay = parseFloat(document.getElementById("otPay").value);
 	const month = document.getElementById("month").value;
