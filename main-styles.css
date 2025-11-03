@@ -1,66 +1,87 @@
 body {
 	font-family: Arial, sans-serif;
 	display: flex;
-	justify-content: center;
+	flex-direction: column;
 	align-items: center;
-	height: 100vh;
 	margin: 0;
 	background-color: #f0f0f0;
-}
-
-footer {
-	width: 100%;
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	clear: both;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+	color: #333;
+	min-height: 100vh;
 }
 
 .container {
-	margin-top: -100px;
+	max-width: 90%;
+	width: 800px;
 	text-align: center;
+	padding: 20px;
+	box-sizing: border-box;
 }
 
 .logo {
-	width: 1000px;
+	width: 80%;
+	max-width: 400px;
 	height: auto;
 	margin-bottom: 20px;
 }
 
-.description {
-	line-height: 1.5;
+h1 {
+	font-size: 32px;
+	margin-bottom: 10px;
 }
 
-.highlight {
-	font-size: 24px;
+.description {
+	font-size: 18px;
+	line-height: 1.6;
+}
+
+.product-list {
+	list-style-type: disc;
+	text-align: left;
+	margin: 10px auto;
+	max-width: 500px;
+	line-height: 1.8;
+	font-size: 16px;
+}
+
+footer {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	padding: 20px 0;
+	margin-top: 40px;
+	background-color: #fff;
+	border-top: 2px solid #eee;
 }
 
 .contact-me {
 	background-color: #ffd900;
-	padding: 10px;
+	padding: 10px 20px;
 	border-radius: 5px;
-	width: 100%;
-	max-width: 200px;
-	margin: 0 auto;
-	margin-top: 50px;
 	margin-bottom: 10px;
-	text-align: center;
-	background-image: radial-gradient(circle, #ffd900, #f0f0f0);
+	font-weight: bold;
+}
+
+.contact-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 10px;
+	padding: 10px;
 }
 
 .btn {
 	display: inline-block;
 	padding: 10px 20px;
 	margin: 5px;
-	border: none;
 	border-radius: 5px;
 	text-decoration: none;
 	color: #fff;
 	font-size: 16px;
 	transition: background-color 0.3s ease;
+	white-space: nowrap;
 }
 
 .btn-login-container {
@@ -70,27 +91,11 @@ footer {
 }
 
 .btn-login {
-	display: inline-block;
-	padding: 10px 20px;
 	background-color: #007bff;
-	color: white;
-	font-size: 16px;
-	border: none;
-	border-radius: 5px;
-	text-decoration: none;
-	cursor: pointer;
-	white-space: nowrap;
-}
-
-.btn-login:hover {
-	background-color: #0056b3;
+	color: #fff;
 }
 
 .btn-phone {
-	background-color: #007bff;
-}
-
-.btn-copy {
 	background-color: #007bff;
 }
 
@@ -103,6 +108,27 @@ footer {
 }
 
 .btn:hover {
-	background-color: #0056b3;
-	color: #fff;
+	opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+	h1 {
+		font-size: 24px;
+	}
+
+	.description {
+		font-size: 16px;
+	}
+
+	.logo {
+		max-width: 300px;
+	}
+
+	.contact-me {
+		width: auto;
+	}
+
+	.contact-buttons {
+		flex-direction: column;
+	}
 }
