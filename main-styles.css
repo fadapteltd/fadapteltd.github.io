@@ -15,11 +15,12 @@ body {
 	text-align: center;
 	padding: 20px;
 	box-sizing: border-box;
+	margin-top: 80px;
 }
 
 .logo {
 	width: 80%;
-	max-width: 400px;
+	max-width: 600px;
 	height: auto;
 	margin-bottom: 20px;
 }
@@ -85,9 +86,10 @@ footer {
 }
 
 .btn-login-container {
-	position: absolute;
-	top: 20px;
-	right: 20px;
+	position: fixed;
+	top: 10px;
+	right: 10px;
+	z-index: 10;
 }
 
 .btn-login {
