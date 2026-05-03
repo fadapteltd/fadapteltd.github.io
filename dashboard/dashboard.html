@@ -54,9 +54,24 @@
 				padding: 5px;
 				box-sizing: border-box;
 			}
+
+			.nav-links {
+				margin-bottom: 20px;
+			}
+
+			.nav-links a {
+				text-decoration: none;
+				color: #007bff;
+				font-weight: bold;
+				margin-right: 15px;
+			}
 		</style>
 	</head>
 	<body>
+		<div class="nav-links">
+			<a href="../index.html">&larr; Back to Home</a>
+			<a href="hub.html">&uarr; Back to Menu</a>
+		</div>
 		<h1>Payroll Input Dashboard</h1>
 
 		<form id="payroll-form" onsubmit="return handleSubmit(event);">

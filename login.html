@@ -48,10 +48,23 @@
 			.login-container button:hover {
 				background-color: #0056b3;
 			}
+
+			.back-link {
+				position: absolute;
+				top: 20px;
+				left: 20px;
+				text-decoration: none;
+				color: #007bff;
+				font-weight: bold;
+			}
+			.back-link:hover {
+				text-decoration: underline;
+			}
 		</style>
 	</head>
 
 	<body>
+		<a href="index.html" class="back-link">&larr; Back to Home</a>
 		<div class="login-container">
 			<h2>Login</h2>
 			<form id="login-form">
@@ -77,6 +90,14 @@
 				if (loginForm) {
 					loginForm.addEventListener("submit", handleLogin);
 				}
+
+				// Load saved credentials for development convenience
+				const savedUser = localStorage.getItem("devUsername");
+				const savedPass = localStorage.getItem("devPassword");
+				if (savedUser && savedPass) {
+					document.getElementById("username").value = savedUser;
+					document.getElementById("password").value = savedPass;
+				}
 			});
 
 			/**
@@ -92,7 +113,9 @@
 				const password = document.getElementById("password").value;
 
 				if (username === "admin" && password === "admin") {
-					window.location.href = "./dashboard/dashboard.html";
+					localStorage.setItem("devUsername", username);
+					localStorage.setItem("devPassword", password);
+					window.location.href = "./dashboard/hub.html";
 				} else {
 					alert("Login failed: Invalid username or password.");
 					window.location.href = "index.html";
