@@ -1,66 +1,92 @@
+/**
+ * Generates the timesheet table for the selected month.
+ */
 async function generateTable() {
 	const container = document.getElementById("dayTableContainer");
-	container.innerHTML = ""; // Clear previous table
+	if (!container) return;
+
+	container.innerHTML = "";
 
 	const monthInput = document.getElementById("month").value;
 	if (!monthInput) return;
 
 	const [year, month] = monthInput.split("-").map(Number);
-
-	const numDays = new Date(year, month, 0).getDate(); // Get number of days in month
+	const numDays = new Date(year, month, 0).getDate();
 	const monthName = new Date(year, month - 1).toLocaleString("default", {
 		month: "long",
 	});
 
-	// Create table
-	const table = document.createElement("table");
+	window.holidaySet = await fetchPublicHolidays(year);
 
-	// Table Header
-	const thead = document.createElement("thead");
-	thead.innerHTML = `
-        <tr>
-        <th>Date</th>
-        <th>Start Time (HH)</th>
-        <th>End Time (HH)</th>
-    </tr>`;
-	table.appendChild(thead);
+	const table = buildTimesheetTable(
+		year,
+		month,
+		numDays,
+		monthName,
+		window.holidaySet,
+	);
+	container.appendChild(table);
 
-	// Table Body
-	const tbody = document.createElement("tbody");
+	attachNormalizationListeners();
+}
 
-	const apiUrl = `https://cors-anywhere.herokuapp.com/https://api.11holidays.com/holidays/sg/${year}`; //https://cors-anywhere.herokuapp.com/ for testing
-
+/**
+ * Fetches and parses public holidays for a given year.
+ * @param {number} year - The year to fetch holidays for.
+ * @returns {Promise<Set<string>>} A set of holiday date strings (YYYY-MM-DD).
+ */
+async function fetchPublicHolidays(year) {
+	const apiUrl = `https://cors-anywhere.herokuapp.com/https://api.11holidays.com/holidays/sg/${year}`;
 	let holidayDates = [];
 
 	try {
-		const response = await fetch(apiUrl).then((url) => url.text());
-
-		const holidays = await parseNationalHolidaysFromHTML(response);
-
-		// holidays array contains objects with `date` property like "2025-01-01"
-		holidayDates = holidays.map((h) => h.date);
+		const response = await fetch(apiUrl);
+		if (response.ok) {
+			const htmlText = await response.text();
+			const holidays = parseNationalHolidaysFromHTML(htmlText);
+			holidayDates = holidays.map((h) => h.date);
+		}
 	} catch (err) {
 		console.error("Error fetching holidays:", err);
-		// fallback: no holidays if API fails
-		holidayDates = [];
 	}
 
-	const holidaySet = new Set(holidayDates);
-	window.holidaySet = holidaySet;
+	return new Set(holidayDates);
+}
+
+/**
+ * Builds the timesheet table DOM element.
+ * @param {number} year
+ * @param {number} month
+ * @param {number} numDays
+ * @param {string} monthName
+ * @param {Set<string>} holidaySet
+ * @returns {HTMLTableElement}
+ */
+function buildTimesheetTable(year, month, numDays, monthName, holidaySet) {
+	const table = document.createElement("table");
+	const thead = document.createElement("thead");
+	thead.innerHTML = `
+        <tr>
+            <th>Date</th>
+            <th>Start Time (HH)</th>
+            <th>End Time (HH)</th>
+        </tr>`;
+	table.appendChild(thead);
+
+	const tbody = document.createElement("tbody");
 
 	for (let day = 1; day <= numDays; day++) {
 		const currentDate = new Date(year, month - 1, day);
-		const isSunday = currentDate.getDay() === 0;
-
 		const yyyy = currentDate.getFullYear();
 		const mm = String(currentDate.getMonth() + 1).padStart(2, "0");
 		const dd = String(currentDate.getDate()).padStart(2, "0");
 		const dateKey = `${yyyy}-${mm}-${dd}`;
+
+		const isSunday = currentDate.getDay() === 0;
 		const isPublicHoliday = holidaySet.has(dateKey);
 		const isRestDay = isSunday || isPublicHoliday;
 
 		const dateStr = `${monthName} ${day}, ${year}`;
-
 		const startValue = isRestDay ? 0 : 8;
 		const endValue = isRestDay ? 0 : 19;
 		const textColor = isRestDay ? 'style="color:red;"' : "";
@@ -75,27 +101,26 @@ async function generateTable() {
 	}
 
 	table.appendChild(tbody);
-	container.appendChild(table);
-	attachNormalizationListeners();
+	return table;
 }
 
-async function parseNationalHolidaysFromHTML(htmlText) {
-	// Parse the full HTML page
+/**
+ * Parses national holidays from the HTML response.
+ * @param {string} htmlText - The raw HTML string.
+ * @returns {Array<Object>} List of holiday objects.
+ */
+function parseNationalHolidaysFromHTML(htmlText) {
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(htmlText, "text/html");
-
-	// Find the holiday table
 	const table = doc.querySelector("#holidays");
+
 	if (!table) {
 		console.error("No table with id='holidays' found!");
 		return [];
 	}
 
-	// Extract rows
 	const rows = table.querySelectorAll("tbody tr");
-
-	// Convert to JSON + filter only National Holidays
-	const holidays = Array.from(rows)
+	return Array.from(rows)
 		.map((tr) => {
 			const tds = tr.querySelectorAll("td");
 			return {
@@ -106,47 +131,47 @@ async function parseNationalHolidaysFromHTML(htmlText) {
 			};
 		})
 		.filter((item) => item.type.toLowerCase().includes("national holiday"));
-
-	return holidays;
 }
 
-// Attach event listeners to inputs after table generated
+/**
+ * Attaches event listeners to normalize time inputs.
+ */
 function attachNormalizationListeners() {
 	const inputs = document.querySelectorAll(
-		'#dayTableContainer input[type="number"]'
+		'#dayTableContainer input[type="number"]',
 	);
 	inputs.forEach((input) => {
 		input.addEventListener("blur", () => normalizeTimeInput(input));
 	});
 }
 
+/**
+ * Normalizes a time input field ensuring bounds and correct numeric format.
+ * @param {HTMLInputElement} input - The input element to normalize.
+ */
 function normalizeTimeInput(input) {
 	let val = input.value;
-
-	// Remove leading zeros
 	val = val.replace(/^0+(?=\d)/, "");
-
-	// Convert to number
 	let num = Number(val);
 
 	if (isNaN(num)) {
-		num = input.min || 0; // fallback to min or 0
+		num = input.min ? Number(input.min) : 0;
 	}
 
-	// Enforce min/max bounds
 	const min = input.min ? Number(input.min) : 0;
 	const max = input.max ? Number(input.max) : 23;
 
-	if (num < min) num = min;
-	if (num > max) num = max;
-
-	input.value = num;
+	input.value = Math.max(min, Math.min(max, num));
 }
 
+/**
+ * Handles the submission of the payroll input form.
+ * @param {Event} event - The form submission event.
+ * @returns {boolean} False if validation fails, true otherwise.
+ */
 function handleSubmit(event) {
 	event.preventDefault();
 
-	// Get inputs
 	const name = document.getElementById("name").value.trim();
 	const basicPay = parseFloat(document.getElementById("basicPay").value);
 	const otPay = parseFloat(document.getElementById("otPay").value);
@@ -157,10 +182,8 @@ function handleSubmit(event) {
 		return false;
 	}
 
-	// Get number of days in selected month
 	const [year, monthNum] = month.split("-").map(Number);
 	const numDays = new Date(year, monthNum, 0).getDate();
-
 	const dailyData = [];
 
 	for (let day = 1; day <= numDays; day++) {
@@ -172,15 +195,14 @@ function handleSubmit(event) {
 			return false;
 		}
 
-		const start = Number(startInput?.value ?? 0);
-		const end = Number(endInput?.value ?? 0);
+		const start = Number(startInput.value || 0);
+		const end = Number(endInput.value || 0);
 
 		if (isNaN(start) || isNaN(end)) {
 			alert(`Invalid time entry on day ${day}.`);
 			return false;
 		}
 
-		// Allow 0,0 (off day), but otherwise enforce end > start
 		if (!(start === 0 && end === 0) && end <= start) {
 			alert(`End time must be greater than start time on day ${day}.`);
 			return false;
@@ -189,17 +211,6 @@ function handleSubmit(event) {
 		dailyData.push({ start, end });
 	}
 
-	// Final formatted output
 	calculatePayrollStats(month, dailyData, basicPay, otPay, name);
-
-	// console.log("Payroll Summary:");
-	// console.log(`Working days (Mon–Sat): ${results.workingDays}`);
-	// console.log(`Sundays worked: ${results.sundaysWorked}`);
-	// console.log(`OT hours (Mon–Sat): ${results.otHours}`);
-	// console.log(`Total days worked: ${results.totalDaysWorked}`);
-	// console.log(`Days worked until 10pm: ${results.daysUntil10pm}`);
-
-	// console.log(output);
-	//alert("Form submitted successfully! Check the console for output.");
 	return true;
 }
