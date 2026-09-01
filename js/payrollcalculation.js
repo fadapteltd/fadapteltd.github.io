@@ -1,10 +1,11 @@
 /**
- * Calculates payroll stats based on daily start and end times.
- * @param {string} month - In format "YYYY-MM"
- * @param {Array<Object>} dailyData - Array of objects [{ start: 8, end: 19 }, ...]
- * @param {number} basicPay - Basic pay rate
- * @param {number} otPay - Overtime pay rate
- * @param {string} employeeName - Name of the employee
+ * Calculates payroll stats and renders the payslip.
+ * @param {string} month - In format "YYYY-MM".
+ * @param {Array<Object>} dailyData - Entries such as { start: 8, end: 19 }.
+ * @param {number} basicPay - Daily basic pay rate.
+ * @param {number} otPay - Hourly overtime rate.
+ * @param {string} employeeName - Employee name.
+ * @returns {{results: Object, totals: Object}}
  */
 function calculatePayrollStats(
 	month,
@@ -13,7 +14,29 @@ function calculatePayrollStats(
 	otPay,
 	employeeName,
 ) {
-	const [year, monthIndex] = month.split("-").map(Number);
+	const activeHolidaySet =
+		typeof window !== "undefined" && window.holidaySet
+			? window.holidaySet
+			: new Set();
+	const results = calculatePayrollResults(
+		month,
+		dailyData,
+		activeHolidaySet,
+	);
+	const totals = calculatePayTotals(results, basicPay, otPay);
+	renderTotalPay(results, totals, basicPay, otPay, employeeName);
+	return { results, totals };
+}
+
+/**
+ * Pure payroll-stat calculation used by both the browser and automated tests.
+ * @param {string} month - In format "YYYY-MM".
+ * @param {Array<Object>} dailyData - Daily start/end entries.
+ * @param {Set<string>|Map<string, string>} holidaySet - Holiday dates.
+ * @returns {Object}
+ */
+function calculatePayrollResults(month, dailyData, holidaySet = new Set()) {
+	const [year, monthIndex] = String(month).split("-").map(Number);
 	const payrollResults = {
 		workingDays: 0,
 		restDaysWorked: 0,
@@ -22,50 +45,60 @@ function calculatePayrollStats(
 		daysUntil10pm: 0,
 	};
 
+	if (
+		!Number.isInteger(year) ||
+		!Number.isInteger(monthIndex) ||
+		monthIndex < 1 ||
+		monthIndex > 12 ||
+		!Array.isArray(dailyData)
+	) {
+		return payrollResults;
+	}
+
 	dailyData.forEach((entry, index) => {
 		const day = index + 1;
-		const startTime = Number(entry.start);
-		const endTime = Number(entry.end);
+		const startTime = Number(entry?.start);
+		const endTime = Number(entry?.end);
 
-		// Skip invalid entries (like empty inputs)
-		if (isNaN(startTime) || isNaN(endTime)) return;
+		if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) return;
 
 		const hoursWorked = endTime - startTime;
 		if (hoursWorked <= 0) return;
 
 		const date = new Date(year, monthIndex - 1, day);
-		const isRestDay = checkIfRestDay(date);
-
+		const isRestDay = checkIfRestDay(date, holidaySet);
 		updatePayrollResults(payrollResults, isRestDay, hoursWorked, endTime);
 	});
 
-	renderTotalPay(payrollResults, basicPay, otPay, employeeName);
+	return payrollResults;
 }
 
 /**
- * Checks if a given date is a rest day (Sunday or Public Holiday).
- * @param {Date} date - The date to check
- * @returns {boolean} True if the date is a rest day, false otherwise
+ * Checks if a date is a Sunday or an official public holiday.
+ * @param {Date} date - Date to check.
+ * @param {Set<string>|Map<string, string>} holidaySet - Holiday dates.
+ * @returns {boolean}
  */
-function checkIfRestDay(date) {
+function checkIfRestDay(date, holidaySet = new Set()) {
 	const isSunday = date.getDay() === 0;
-
 	const yyyy = date.getFullYear();
 	const mm = String(date.getMonth() + 1).padStart(2, "0");
 	const dd = String(date.getDate()).padStart(2, "0");
 	const dateKey = `${yyyy}-${mm}-${dd}`;
-
-	const isPublicHoliday = window.holidaySet && window.holidaySet.has(dateKey);
+	const isPublicHoliday =
+		holidaySet && typeof holidaySet.has === "function"
+			? holidaySet.has(dateKey)
+			: false;
 
 	return isSunday || isPublicHoliday;
 }
 
 /**
- * Updates the payroll results object based on daily work data.
- * @param {Object} results - The payroll results accumulator
- * @param {boolean} isRestDay - Whether the day is a rest day
- * @param {number} hoursWorked - Total hours worked
- * @param {number} endTime - The end time of the shift
+ * Updates the payroll result accumulator for one worked day.
+ * @param {Object} results - Payroll results accumulator.
+ * @param {boolean} isRestDay - Whether the day is a rest day.
+ * @param {number} hoursWorked - Shift duration.
+ * @param {number} endTime - Shift end time.
  */
 function updatePayrollResults(results, isRestDay, hoursWorked, endTime) {
 	results.totalDaysWorked++;
@@ -87,114 +120,122 @@ function updatePayrollResults(results, isRestDay, hoursWorked, endTime) {
 }
 
 /**
- * Formats a numeric value into a currency string.
- * @param {number} value - The numeric value to format
- * @returns {string} Formatted currency string
+ * Calculates each monetary component and the final total.
+ * @param {Object} results - Payroll statistics.
+ * @param {number} basicPay - Daily basic pay rate.
+ * @param {number} otPay - Hourly overtime rate.
+ * @returns {Object}
  */
-function formatMoney(value) {
-	const num = Number(value);
-	return isNaN(num) ? "$0.00" : `$${num.toFixed(2)}`;
-}
-
-/**
- * Calculates total pay and renders the payslip table.
- * @param {Object} results - Payroll statistics
- * @param {number} basicPay - Basic pay rate
- * @param {number} otPay - Overtime pay rate
- * @param {string} employeeName - Name of the employee
- */
-function renderTotalPay(results, basicPay, otPay, employeeName) {
-	const daysLate = results.daysUntil10pm;
-
-	const workingPay = results.workingDays * basicPay;
-	const restDayPay = results.restDaysWorked * basicPay * 1.5;
-	const otPayTotal = results.otHours * otPay;
+function calculatePayTotals(results, basicPay, otPay) {
+	const normalizedBasicPay = Number(basicPay);
+	const normalizedOtPay = Number(otPay);
+	const workingPay = results.workingDays * normalizedBasicPay;
+	const restDayPay = results.restDaysWorked * normalizedBasicPay * 1.5;
+	const otPayTotal = results.otHours * normalizedOtPay;
 	const transportPay = results.totalDaysWorked * 5;
-	const foodCost = daysLate > 0 ? daysLate * 5 : 0;
-
+	const foodCost = results.daysUntil10pm * 5;
 	const totalPay =
 		workingPay + restDayPay + otPayTotal + transportPay + foodCost;
 
-	const tableHTML = generatePayslipHTML(
-		employeeName,
-		results,
-		basicPay,
-		otPay,
+	return {
 		workingPay,
 		restDayPay,
 		otPayTotal,
 		transportPay,
 		foodCost,
 		totalPay,
-		daysLate,
-	);
-
-	const container = document.getElementById("resultContainer");
-	if (container) {
-		container.innerHTML = tableHTML;
-	}
+	};
 }
 
 /**
- * Generates the HTML string for the payslip table.
- * @returns {string} The HTML string for the payslip
+ * Formats a numeric value as dollars.
+ * @param {number} value - Numeric value.
+ * @returns {string}
  */
-function generatePayslipHTML(
-	employeeName,
-	results,
-	basicPay,
-	otPay,
-	workingPay,
-	restDayPay,
-	otPayTotal,
-	transportPay,
-	foodCost,
-	totalPay,
-	daysLate,
-) {
-	let tableHTML = `
-    <table style="margin-top: 20px; border-collapse: collapse; width: 100%;">
-      <thead>
-        <tr>
-          <th colspan="2" style="text-align: left; font-size: 1.2em; padding-bottom: 10px;">
-            Payslip for: <strong>${employeeName}</strong>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>${results.workingDays} days x ${formatMoney(basicPay)}</td>
-          <td>= ${formatMoney(workingPay)}</td>
-        </tr>
-        <tr>
-          <td>${results.restDaysWorked} days x ${formatMoney(basicPay)} x 1.5</td>
-          <td>= ${formatMoney(restDayPay)}</td>
-        </tr>
-        <tr>
-          <td>OT: ${results.otHours} hours x ${formatMoney(otPay)}</td>
-          <td>= ${formatMoney(otPayTotal)}</td>
-        </tr>
-        <tr>
-          <td>Transport: ${results.totalDaysWorked} x $5.00</td>
-          <td>= ${formatMoney(transportPay)}</td>
-        </tr>`;
+function formatMoney(value) {
+	const num = Number(value);
+	return Number.isFinite(num) ? `$${num.toFixed(2)}` : "$0.00";
+}
 
-	if (daysLate > 0) {
-		tableHTML += `
-        <tr>
-          <td>Food: ${daysLate} x $5.00</td>
-          <td>= ${formatMoney(foodCost)}</td>
-        </tr>`;
+/**
+ * Safely renders the payslip using DOM text nodes.
+ */
+function renderTotalPay(results, totals, basicPay, otPay, employeeName) {
+	const container = document.getElementById("resultContainer");
+	if (!container) return;
+
+	const section = document.createElement("section");
+	section.className = "panel payroll-panel";
+
+	const title = document.createElement("h2");
+	title.className = "payslip-title";
+	title.append("Payslip for: ");
+	const employee = document.createElement("strong");
+	employee.textContent = employeeName;
+	title.appendChild(employee);
+	section.appendChild(title);
+
+	const tableWrapper = document.createElement("div");
+	tableWrapper.className = "table-scroll";
+	const table = document.createElement("table");
+	table.className = "payslip-table";
+	const tbody = document.createElement("tbody");
+
+	appendPayslipRow(
+		tbody,
+		`${results.workingDays} days × ${formatMoney(basicPay)}`,
+		totals.workingPay,
+	);
+	appendPayslipRow(
+		tbody,
+		`${results.restDaysWorked} rest/public holiday days × ${formatMoney(basicPay)} × 1.5`,
+		totals.restDayPay,
+	);
+	appendPayslipRow(
+		tbody,
+		`OT: ${results.otHours} hours × ${formatMoney(otPay)}`,
+		totals.otPayTotal,
+	);
+	appendPayslipRow(
+		tbody,
+		`Transport: ${results.totalDaysWorked} days × $5.00`,
+		totals.transportPay,
+	);
+
+	if (results.daysUntil10pm > 0) {
+		appendPayslipRow(
+			tbody,
+			`Food: ${results.daysUntil10pm} days × $5.00`,
+			totals.foodCost,
+		);
 	}
 
-	tableHTML += `
-        <tr style="font-weight: bold;">
-          <td>Total:</td>
-          <td>${formatMoney(totalPay)}</td>
-        </tr>
-      </tbody>
-    </table>
-  `;
+	appendPayslipRow(tbody, "Total", totals.totalPay, "total-row");
+	table.appendChild(tbody);
+	tableWrapper.appendChild(table);
+	section.appendChild(tableWrapper);
+	container.replaceChildren(section);
+}
 
-	return tableHTML;
+function appendPayslipRow(tbody, label, amount, className = "") {
+	const row = document.createElement("tr");
+	if (className) row.className = className;
+
+	const labelCell = document.createElement("td");
+	labelCell.textContent = label;
+	const amountCell = document.createElement("td");
+	amountCell.textContent = `= ${formatMoney(amount)}`;
+
+	row.append(labelCell, amountCell);
+	tbody.appendChild(row);
+}
+
+if (typeof module !== "undefined" && module.exports) {
+	module.exports = {
+		calculatePayTotals,
+		calculatePayrollResults,
+		checkIfRestDay,
+		formatMoney,
+		updatePayrollResults,
+	};
 }

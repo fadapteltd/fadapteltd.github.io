@@ -1,61 +1,34 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="auth-check">
 	<head>
 		<meta charset="UTF-8" />
-		<title>Dashboard Hub</title>
-		<style>
-			body {
-				font-family: Arial, sans-serif;
-				padding: 30px;
-				background-color: #f2f2f2;
-				text-align: center;
-			}
-			.nav-links {
-				margin-bottom: 20px;
-				text-align: left;
-			}
-			.nav-links a {
-				text-decoration: none;
-				color: #007bff;
-				font-weight: bold;
-			}
-			.hub-container {
-				display: flex;
-				flex-direction: column;
-				align-items: center;
-				gap: 20px;
-				margin-top: 40px;
-			}
-			.hub-card {
-				background: white;
-				padding: 20px;
-				border-radius: 8px;
-				box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-				width: 300px;
-				text-decoration: none;
-				color: #333;
-				font-size: 18px;
-				font-weight: bold;
-				transition:
-					transform 0.2s,
-					background-color 0.2s;
-			}
-			.hub-card:hover {
-				transform: scale(1.05);
-				background-color: #007bff;
-				color: white;
-			}
-		</style>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="description" content="Fa Da Pte Ltd tools dashboard." />
+		<title>Dashboard Menu | Fa Da Pte Ltd</title>
+		<link rel="stylesheet" href="../css/dashboard-styles.css" />
+		<script src="../js/auth.js"></script>
+		<script>
+			window.FadaAuth.startGuard("../login.html");
+		</script>
 	</head>
 	<body>
-		<div class="nav-links">
-			<a href="../index.html">&larr; Back to Home</a>
-		</div>
-		<h1>Dashboard Menu</h1>
-		<p>Select a function to use:</p>
-		<div class="hub-container">
-			<a href="dashboard.html" class="hub-card">Calculate Pays</a>
-			<!-- You can add more function cards here in the future -->
-		</div>
+		<main class="page-shell">
+			<nav class="nav-links" aria-label="Dashboard navigation">
+				<a href="../index.html">&larr; Back to Home</a>
+				<button
+					type="button"
+					class="link-button logout-button"
+					onclick="window.FadaAuth.logout('../login.html')"
+				>
+					Log out
+				</button>
+			</nav>
+			<h1 class="page-heading">Dashboard Menu</h1>
+			<p class="page-intro">Select a function to use:</p>
+			<div class="hub-container">
+				<a href="dashboard.html" class="hub-card">Calculate Pays</a>
+				<!-- Add future tools as additional cards. -->
+			</div>
+		</main>
 	</body>
 </html>

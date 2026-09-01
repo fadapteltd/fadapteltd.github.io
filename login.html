@@ -2,102 +2,54 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
-		<title>Login Page</title>
-		<style>
-			body {
-				font-family: Arial, sans-serif;
-				background-color: #f2f2f2;
-				display: flex;
-				justify-content: center;
-				align-items: center;
-				height: 100vh;
-			}
-
-			.login-container {
-				background-color: white;
-				padding: 30px;
-				border-radius: 8px;
-				box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-				width: 300px;
-			}
-
-			.login-container h2 {
-				text-align: center;
-				margin-bottom: 20px;
-			}
-
-			.login-container input[type="text"],
-			.login-container input[type="password"] {
-				width: 100%;
-				padding: 10px;
-				margin: 8px 0;
-				border: 1px solid #ccc;
-				border-radius: 4px;
-			}
-
-			.login-container button {
-				width: 100%;
-				padding: 10px;
-				background-color: #007bff;
-				color: white;
-				border: none;
-				border-radius: 4px;
-				cursor: pointer;
-			}
-
-			.login-container button:hover {
-				background-color: #0056b3;
-			}
-
-			.back-link {
-				position: absolute;
-				top: 20px;
-				left: 20px;
-				text-decoration: none;
-				color: #007bff;
-				font-weight: bold;
-			}
-			.back-link:hover {
-				text-decoration: underline;
-			}
-		</style>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta
+			name="description"
+			content="Authorised access to the Fa Da Pte Ltd tools dashboard."
+		/>
+		<title>Dashboard Login | Fa Da Pte Ltd</title>
+		<link rel="stylesheet" href="css/dashboard-styles.css" />
+		<script src="js/auth.js"></script>
 	</head>
 
-	<body>
+	<body class="auth-page">
 		<a href="index.html" class="back-link">&larr; Back to Home</a>
-		<div class="login-container">
-			<h2>Login</h2>
+		<main class="login-container panel">
+			<h1>Dashboard Login</h1>
 			<form id="login-form">
+				<label class="field-label" for="username">Username</label>
 				<input
 					type="text"
 					id="username"
-					placeholder="Username"
+					class="field-input"
+					autocomplete="username"
 					required
 				/>
+				<label class="field-label" for="password">Password</label>
 				<input
 					type="password"
 					id="password"
-					placeholder="Password"
+					class="field-input"
+					autocomplete="current-password"
+					aria-describedby="login-message"
 					required
 				/>
-				<button type="submit">Log In</button>
+				<button class="primary-button login-button" type="submit">
+					Log In
+				</button>
 			</form>
-		</div>
+			<p id="login-message" class="form-message" role="alert"></p>
+		</main>
 
 		<script>
 			document.addEventListener("DOMContentLoaded", () => {
-				const loginForm = document.getElementById("login-form");
-				if (loginForm) {
-					loginForm.addEventListener("submit", handleLogin);
+				if (window.FadaAuth.isAuthenticated()) {
+					window.location.replace("./dashboard/hub.html");
+					return;
 				}
 
-				// Load saved credentials for development convenience
-				const savedUser = localStorage.getItem("devUsername");
-				const savedPass = localStorage.getItem("devPassword");
-				if (savedUser && savedPass) {
-					document.getElementById("username").value = savedUser;
-					document.getElementById("password").value = savedPass;
-				}
+				const loginForm = document.getElementById("login-form");
+				loginForm.addEventListener("submit", handleLogin);
 			});
 
 			/**
@@ -105,20 +57,20 @@
 			 * @param {Event} event - The form submission event.
 			 */
 			function handleLogin(event) {
-				event.preventDefault(); // Stop form from submitting
+				event.preventDefault();
 
 				const username = document
 					.getElementById("username")
 					.value.trim();
-				const password = document.getElementById("password").value;
+				const passwordInput = document.getElementById("password");
+				const message = document.getElementById("login-message");
 
-				if (username === "admin" && password === "admin") {
-					localStorage.setItem("devUsername", username);
-					localStorage.setItem("devPassword", password);
+				if (window.FadaAuth.login(username, passwordInput.value)) {
 					window.location.href = "./dashboard/hub.html";
 				} else {
-					alert("Login failed: Invalid username or password.");
-					window.location.href = "index.html";
+					message.textContent = "Invalid username or password.";
+					passwordInput.value = "";
+					passwordInput.focus();
 				}
 			}
 		</script>

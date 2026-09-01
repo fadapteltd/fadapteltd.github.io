@@ -1,139 +1,130 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="auth-check">
 	<head>
 		<meta charset="UTF-8" />
-		<title>Dashboard</title>
-		<style>
-			body {
-				font-family: Arial, sans-serif;
-				padding: 30px;
-				background-color: #f2f2f2;
-			}
-
-			h1 {
-				text-align: center;
-			}
-
-			label {
-				font-weight: bold;
-				display: block;
-				margin-top: 20px;
-			}
-
-			input[type="text"],
-			input[type="number"],
-			select {
-				width: 100%;
-				padding: 8px;
-				margin-top: 5px;
-				box-sizing: border-box;
-				border-radius: 4px;
-				border: 1px solid #ccc;
-			}
-
-			table {
-				width: 100%;
-				border-collapse: collapse;
-				margin-top: 30px;
-			}
-
-			th,
-			td {
-				border: 1px solid #ccc;
-				padding: 10px;
-				text-align: left;
-			}
-
-			th {
-				background-color: #007bff;
-				color: white;
-			}
-
-			td input[type="number"] {
-				width: 100%;
-				padding: 5px;
-				box-sizing: border-box;
-			}
-
-			.nav-links {
-				margin-bottom: 20px;
-			}
-
-			.nav-links a {
-				text-decoration: none;
-				color: #007bff;
-				font-weight: bold;
-				margin-right: 15px;
-			}
-		</style>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta
+			name="description"
+			content="Fa Da Pte Ltd monthly payroll input and fare calculation tool."
+		/>
+		<title>Payroll Calculator | Fa Da Pte Ltd</title>
+		<link rel="stylesheet" href="../css/dashboard-styles.css" />
+		<script src="../js/auth.js"></script>
+		<script>
+			window.FadaAuth.startGuard("../login.html");
+		</script>
 	</head>
 	<body>
-		<div class="nav-links">
-			<a href="../index.html">&larr; Back to Home</a>
-			<a href="hub.html">&uarr; Back to Menu</a>
-		</div>
-		<h1>Payroll Input Dashboard</h1>
-
-		<form id="payroll-form" onsubmit="return handleSubmit(event);">
-			<!-- Month Selector -->
-			<label for="month">Select Month and Year:</label>
-			<input
-				type="month"
-				id="month"
-				name="month"
-				required
-				onchange="generateTable()"
-			/>
-
-			<!-- Name -->
-			<label for="name">Employee Name:</label>
-			<input type="text" id="name" name="name" required />
-
-			<!-- Basic Pay -->
-			<label for="basicPay">Basic Pay:</label>
-			<input
-				type="number"
-				id="basicPay"
-				name="basicPay"
-				min="0"
-				step="0.01"
-				required
-			/>
-
-			<!-- OT Pay -->
-			<label for="otPay">OT Pay:</label>
-			<input
-				type="number"
-				id="otPay"
-				name="otPay"
-				min="0"
-				step="0.01"
-				required
-			/>
-
-			<!-- Table for daily values -->
-			<div id="dayTableContainer"></div>
-
-			<!-- Submit Button -->
-			<div style="text-align: right; margin-top: 30px">
+		<main class="page-shell">
+			<nav class="nav-links" aria-label="Dashboard navigation">
+				<a href="../index.html">&larr; Back to Home</a>
+				<a href="hub.html">&uarr; Back to Menu</a>
 				<button
-					type="submit"
-					style="
-						padding: 10px 20px;
-						background-color: #28a745;
-						color: white;
-						border: none;
-						border-radius: 5px;
-						font-size: 16px;
-						cursor: pointer;
-					"
+					type="button"
+					class="link-button logout-button"
+					onclick="window.FadaAuth.logout('../login.html')"
 				>
-					Submit
+					Log out
 				</button>
-			</div>
-		</form>
+			</nav>
 
-		<div id="resultContainer" style="margin-top: 30px"></div>
+			<h1 class="page-heading">Payroll Input Dashboard</h1>
+			<p class="page-intro">
+				Enter the employee's daily hours to calculate the monthly payslip.
+			</p>
+
+			<section class="panel payroll-panel">
+				<form id="payroll-form" onsubmit="return handleSubmit(event);">
+					<div class="form-grid">
+						<div class="full-width">
+							<label class="field-label" for="month">
+								Select Month and Year
+							</label>
+							<input
+								type="month"
+								id="month"
+								name="month"
+								class="field-input"
+								min="2020-01"
+								required
+								onchange="generateTable()"
+							/>
+							<p
+								id="holidayStatus"
+								class="holiday-status"
+								role="status"
+								aria-live="polite"
+							>
+								Select a month to load official Singapore public holidays.
+							</p>
+						</div>
+
+						<div class="full-width">
+							<label class="field-label" for="name">Employee Name</label>
+							<input
+								type="text"
+								id="name"
+								name="name"
+								class="field-input"
+								autocomplete="name"
+								required
+							/>
+						</div>
+
+						<div>
+							<label class="field-label" for="basicPay">
+								Basic Pay (daily rate)
+							</label>
+							<input
+								type="number"
+								id="basicPay"
+								name="basicPay"
+								class="field-input"
+								inputmode="decimal"
+								min="0"
+								step="0.01"
+								required
+							/>
+						</div>
+
+						<div>
+							<label class="field-label" for="otPay">
+								OT Pay (hourly rate)
+							</label>
+							<input
+								type="number"
+								id="otPay"
+								name="otPay"
+								class="field-input"
+								inputmode="decimal"
+								min="0"
+								step="0.01"
+								required
+							/>
+						</div>
+					</div>
+
+					<div id="dayTableContainer"></div>
+
+					<div class="form-actions">
+						<button
+							type="submit"
+							id="submitButton"
+							class="primary-button submit-button"
+							disabled
+						>
+							Calculate Payslip
+						</button>
+					</div>
+				</form>
+			</section>
+
+			<div
+				id="resultContainer"
+				class="result-container"
+				aria-live="polite"
+			></div>
+		</main>
 
 		<script src="../js/payrollinput.js"></script>
 		<script src="../js/payrollcalculation.js"></script>
